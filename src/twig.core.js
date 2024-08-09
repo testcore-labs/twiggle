@@ -458,7 +458,7 @@ module.exports = function (Twig) {
                         token: token,
                         position: token.position,
                         value: function(context) {
-                            const obj_context = !context ? {} : Object.entries(context);
+                            const obj_context = Object.keys(context || {});
                             const script = new Function(...obj_context, `
                                 with(this) {
                                     try {
