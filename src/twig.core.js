@@ -90,7 +90,8 @@ module.exports = function (Twig) {
         outputWhitespaceBoth: 'output_whitespace_both',
         logicWhitespacePre: 'logic_whitespace_pre',
         logicWhitespacePost: 'logic_whitespace_post',
-        logicWhitespaceBoth: 'logic_whitespace_both'
+        logicWhitespaceBoth: 'logic_whitespace_both',
+        js: 'js',
     };
 
     /**
@@ -140,6 +141,14 @@ module.exports = function (Twig) {
             open: '{%-',
             close: '-%}'
         },
+
+        // Javascript/Typescript
+        {
+            type: Twig.token.type.js,
+            open: '<%',
+            close: '%>'
+        },
+
         // *Output type tokens*
         //
         // These typically take the form `{{ expression }}`.
@@ -443,6 +452,31 @@ module.exports = function (Twig) {
             };
 
             const compileLogic = function (token) {
+                if (token.type === Twig.token.type.js) {
+                    tokOutput = {
+                        type: Twig.token.type.js,
+                        token: token,
+                        position: token.position,
+                        value: function(context) {
+                            const script = new Function(...Object.entries(context), `
+                                with(arguments[0]) {
+                                    ${token.value}
+                                }
+                            `);
+                            const result = script.call(context, ...Object.entries(context));
+                            return result !== undefined ? result : '';
+                        }
+                    };
+                    
+                    if (stack.length > 0) {
+                        intermediateOutput.push(tokOutput);
+                    } else {
+                        output.push(tokOutput);
+                    }
+                    
+                    return;
+                }
+
                 // Compile the logic token
                 logicToken = Twig.logic.compile.call(self, token);
                 logicToken.position = token.position;
@@ -544,6 +578,11 @@ module.exports = function (Twig) {
                         break;
 
                     // Kill whitespace ahead and behind this token
+
+                    case Twig.token.type.js:
+                        compileLogic.call(self, token);
+                        break;
+
                     case Twig.token.type.logicWhitespacePre:
                     case Twig.token.type.logicWhitespacePost:
                     case Twig.token.type.logicWhitespaceBoth:
@@ -581,6 +620,11 @@ module.exports = function (Twig) {
                             case Twig.token.type.outputWhitespaceBoth:
                                 compileOutput.call(self, token);
                                 break;
+
+                            case Twig.token.type.js:
+                                compileLogic.call(self, token);
+                                break;
+
                             case Twig.token.type.logicWhitespacePre:
                             case Twig.token.type.logicWhitespacePost:
                             case Twig.token.type.logicWhitespaceBoth:
@@ -1157,6 +1201,10 @@ module.exports = function (Twig) {
         }
 
         function parseTokenLogic(logic) {
+            if(logic == undefined) {
+                // idk
+            } else {
+
             if (typeof logic.chain !== 'undefined') {
                 chain = logic.chain;
             }
@@ -1168,6 +1216,7 @@ module.exports = function (Twig) {
             if (typeof logic.output !== 'undefined') {
                 output.push(logic.output);
             }
+            }
         }
 
         promise = Twig.async.forEach(tokens, token => {
@@ -1176,6 +1225,10 @@ module.exports = function (Twig) {
             switch (token.type) {
                 case Twig.token.type.raw:
                     output.push(Twig.filters.raw(token.value));
+                    break;
+
+                case Twig.token.type.js: 
+                    output.push(token.value(state.context));
                     break;
 
                 case Twig.token.type.logic:
@@ -1388,6 +1441,10 @@ module.exports = function (Twig) {
 
                     if (params.isInclude === true) {
                         return output;
+                    }
+
+                    if(output == undefined) {
+                        return "";
                     }
 
                     return output.valueOf();

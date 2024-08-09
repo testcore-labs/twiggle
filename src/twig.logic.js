@@ -1528,7 +1528,7 @@ module.exports = function (Twig) {
             const tokenTemplate = Twig.logic.handler[token.type];
             let result;
             const state = this;
-
+            
             if (!tokenTemplate.parse) {
                 return '';
             }
