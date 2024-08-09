@@ -458,12 +458,12 @@ module.exports = function (Twig) {
                         token: token,
                         position: token.position,
                         value: function(context) {
-                            const script = new Function(...Object.entries(context), `
+                            const script = new Function(...Object.values(context), `
                                 with(arguments[0]) {
                                     ${token.value}
                                 }
                             `);
-                            const result = script.call(context, ...Object.entries(context));
+                            const result = script.call(context, ...Object.values(context));
                             return result !== undefined ? result : '';
                         }
                     };
