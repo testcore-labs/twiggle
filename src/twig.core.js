@@ -460,10 +460,20 @@ module.exports = function (Twig) {
                         value: function(context) {
                             const script = new Function(...Object.entries(context), `
                                 with(this) {
-                                    ${token.value}
+                                    try {
+                                        ${token.value}
+                                    } catch (e) {
+                                        console.error('error running js in twig: ', e);
+                                    }
                                 }
                             `);
-                            const result = script.call(context, ...Object.entries(context));
+                            
+                            let result;
+                            if(!context) {
+                                result = script.call(undefined);
+                            } else {
+                                result = script.call(context, ...Object.entries(context));
+                            }
                             return result !== undefined ? result : '';
                         }
                     };
