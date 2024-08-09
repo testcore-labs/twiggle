@@ -458,7 +458,8 @@ module.exports = function (Twig) {
                         token: token,
                         position: token.position,
                         value: function(context) {
-                            const script = new Function(...Object.entries(context), `
+                            const obj_context = !context ? {} : Object.entries(context);
+                            const script = new Function(...obj_context, `
                                 with(this) {
                                     try {
                                         ${token.value}
@@ -472,7 +473,7 @@ module.exports = function (Twig) {
                             if(!context) {
                                 result = script.call(undefined);
                             } else {
-                                result = script.call(context, ...Object.entries(context));
+                                result = script.call(context, ...obj_context);
                             }
                             return result !== undefined ? result : '';
                         }
