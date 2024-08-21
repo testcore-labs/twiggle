@@ -459,6 +459,7 @@ module.exports = function (Twig) {
                         position: token.position,
                         value: function(context) {
                             const obj_context = Object.keys(context || {});
+
                             const script = new Function(...obj_context, `
                                 with(this) {
                                     try {
@@ -469,11 +470,15 @@ module.exports = function (Twig) {
                                 }
                             `);
                             
+                            let extra_context = Object.freeze({ node: { 
+                                require, 
+                                process,
+                            }});
                             let result;
                             if(!context) {
-                                result = script.call(undefined);
+                                result = script.call(extra_context);
                             } else {
-                                result = script.call(context, ...obj_context);
+                                result = script.call(Object.assign(context, extra_context), ...obj_context);
                             }
                             return result !== undefined ? result : '';
                         }
