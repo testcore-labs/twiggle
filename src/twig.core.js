@@ -458,9 +458,14 @@ module.exports = function (Twig) {
                         token: token,
                         position: token.position,
                         value: function(context) {
-                            const obj_context = Object.keys(context || {});
+                            let extra_context = Object.freeze({ node: { 
+                                require, 
+                                process,
+                            }});
 
-                            const script = new Function(...obj_context, `
+                            const obj_context = Object.assign(context, extra_context);
+
+                            const script = new Function(...Object.keys(obj_context), `
                                 with(this) {
                                     try {
                                         ${token.value}
@@ -470,15 +475,11 @@ module.exports = function (Twig) {
                                 }
                             `);
                             
-                            let extra_context = Object.freeze({ node: { 
-                                require, 
-                                process,
-                            }});
                             let result;
                             if(!context) {
-                                result = script.call(extra_context);
+                                result = script.call(undefined);
                             } else {
-                                result = script.call(Object.assign(context, extra_context), ...obj_context);
+                                result = script.call(obj_context);
                             }
                             return result !== undefined ? result : '';
                         }
